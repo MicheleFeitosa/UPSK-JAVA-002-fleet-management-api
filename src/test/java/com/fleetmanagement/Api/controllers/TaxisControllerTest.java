@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
@@ -26,6 +27,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 
 @WebMvcTest(TaxisController.class)
 public class TaxisControllerTest {
@@ -62,7 +64,7 @@ public class TaxisControllerTest {
     public void getTrajectoriesByTaxiId() throws Exception{
         TrajectoriesModels trajectory = new TrajectoriesModels();
         TaxisModels taxi1 = new TaxisModels();
-        taxi1.setPlate("56789");
+        taxi1.setPlate("PAOF-6727");
         taxi1.setId(2);
         trajectory.setId(1);
         trajectory.setTaxi(taxi1);
@@ -84,14 +86,34 @@ public class TaxisControllerTest {
                         "\"first\":true,\"empty\":false}"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()").value(1));
 
-
-
-
-
-
-
-
-
     }
+
+    @Test
+    public void getTaxiLastLocation() throws Exception {
+        TrajectoriesModels trajectory = new TrajectoriesModels();
+        TaxisModels taxi1 = new TaxisModels();
+        taxi1.setPlate("PAOF-6727");
+        taxi1.setId(10133);
+        trajectory.setId(7249);
+        trajectory.setTaxi(taxi1);
+        trajectory.setDate(LocalDateTime.parse("2008-02-03T19:00:21"));
+        trajectory.setLatitude(116.29102);
+        trajectory.setLongitude(39.88669);
+        Page<TrajectoriesModels> trajectoriesPage = new PageImpl<>(List.of(trajectory));
+
+        when(trajectoriesRepository.findLastLocation(any(Pageable.class))).thenReturn(trajectoriesPage);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/taxis/last-location")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$").isMap())
+                .andExpect(MockMvcResultMatchers.content().json("{\"content\":[{\"id\":7249,\"taxi\":{\"id\":10133,\"" +
+                        "plate\":\"PAOF-6727\"},\"date\":\"2008-02-03T19:00:21\",\"latitude\":116.29102,\"longitude\":39.886" +
+                        "69}],\"pageable\":\"INSTANCE\",\"totalElements\":1,\"totalPages\":1,\"last\":true,\"size\":1,\"" +
+                        "number\":0,\"sort\":{\"empty\":true,\"sorted\":false,\"unsorted\":true},\"numberOfElements\":1," +
+                        "\"first\":true,\"empty\":false}"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()").value(1));
+    }
+
 }
 
